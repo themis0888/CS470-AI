@@ -115,9 +115,24 @@ class NeuralNetworkClassifier(classificationMethod.ClassificationMethod):
     self.outAct: (automatically selected) output activation function
     ReLU: rectified linear unit used for the activation function of hidden layers
     """
-
+    W, a, z = [], [], []
     "*** YOUR CODE HERE ***"
-    util.raiseNotDefined()
+    W.append(trainingData.dot(self.W[0]))
+    z.append(W[0] + self.b[0])
+    a.append(ReLU(z[0]))
+
+    W.append(a[0].dot(self.W[1]))
+    z.append(W[1] + self.b[1])
+    a.append(ReLU(z[1]))
+    
+    W.append(a[1].dot(self.W[2]))
+    z.append(W[2] + self.b[2])
+    a.append(self.outAct(z[2]))
+
+    self.memory   = (trainingData, self.b, self.W, W, a, z)
+    self.depth    = len(a)
+    
+    return a[len(a)-1]
 
   def backwardPropagation(self, netOut, trainingLabels, learningRate):
     """
@@ -146,8 +161,29 @@ class NeuralNetworkClassifier(classificationMethod.ClassificationMethod):
 
      
     "*** YOUR CODE HERE ***"
+    #util.raiseNotDefined()
+    dz, da = [[0 for i in range(self.depth)] for i in range(2)]
+    dW, db = [], []
+    X,b,W,WW,a,z = self.memory
     delta = netOut - trainingLabels
-    util.raiseNotDefined()
+
+    da[2] = delta.dot(W[2].T).reshape(a[1].shape)
+    dz[2] = np.array(da[2], copy=True)
+    dz[2][z[1] <= 0] = 0
+
+    da[1] = dz[2].dot(W[1].T).reshape(a[0].shape)
+    dz[1] = np.array(da[1], copy=True)
+    dz[1][z[0] <= 0] = 0
+
+    db.append(np.sum(dz[1], axis=0))
+    db.append(np.sum(dz[2], axis=0))
+    db.append(np.sum(delta, axis=0))
+    dW.append((X.T).dot(dz[1]))
+    dW.append((a[0].T).dot(dz[2]))
+    dW.append((a[1].T).dot(delta))
+    
+    self.W = [W[0]-learningRate*dW[0], W[1]-learningRate*dW[1], W[2]-learningRate*dW[2]]
+    self.b = [b[0]-learningRate*db[0], b[1]-learningRate*db[1], b[2]-learningRate*db[2]]
 
 
   def classify(self, testData):
